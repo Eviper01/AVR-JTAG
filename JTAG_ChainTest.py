@@ -12,8 +12,12 @@ class std_logic(object):
         self.ePin = ePin
 
     def set_value(self, value):
+        global JTAG_Data
         JTAG_Data[self.dPin] = value
         JTAG_Data[self.ePin] = 1
+    def disable(self):
+        global JTAG_Data
+        JTAG_Data[self.ePin] = 0
 
 
 
@@ -75,6 +79,7 @@ Data_Bank = []
 
 
 def main():
+
     #bootup sequence (puts pins to safe values)
     global Data_Bank
     MainRegOutputControl.set_value(1)
@@ -88,54 +93,73 @@ def main():
     #display test data
     Bus_Write(Main_Bus, Test_Sequence)
     Data_Bank.append(JTAG_Data.copy())
+    
     ##INIT COMPLETE##
 
-    #step1 intialise counter
-    Bus_Write(Main_Bus, "00000000")
-    Count.set_value(0)
-    CounterOutControl.set_value(0) #Count Output
-    MemWriteControl.set_value(1) #disable writing
-    LowJumpRegLoad.set_value(0) #prepare to Jump
-    HighJumpRegLoad.set_value(0) #prepare to Jump
-    JumpEnable.set_value(1) #prepare to Jump
-    Data_Bank.append(JTAG_Data.copy())
+    # #step1 intialise counter
+    # Bus_Write(Main_Bus, "00000000")
+    # Count.set_value(0)
+    # CounterOutControl.set_value(0) #Count Output
+    # MemWriteControl.set_value(1) #disable writing
+    # LowJumpRegLoad.set_value(0) #prepare to Jump
+    # HighJumpRegLoad.set_value(0) #prepare to Jump
+    # JumpEnable.set_value(1) #prepare to Jump
+    # Data_Bank.append(JTAG_Data.copy())
+    #
+    # #latch the Buffers
+    # LowJumpRegLoad.set_value(1)
+    # HighJumpRegLoad.set_value(1)
+    # Data_Bank.append(JTAG_Data.copy())
+    #
+    # #Preset the Counter
+    # Count.set_value(1)
+    # LowJumpRegLoad.set_value(0) #probs not necessary
+    # HighJumpRegLoad.set_value(0) #probs not necessary
+    # Data_Bank.append(JTAG_Data.copy())
 
-    #latch the Buffers
-    LowJumpRegLoad.set_value(1)
-    HighJumpRegLoad.set_value(1)
-    Data_Bank.append(JTAG_Data.copy())
 
-    #Preset the Counter
-    Count.set_value(1)
-    LowJumpRegLoad.set_value(0) #probs not necessary
-    HighJumpRegLoad.set_value(0) #probs not necessary
-    Data_Bank.append(JTAG_Data.copy())
+    # instructions = read_binaries(sys.argv[1])
+    # for instruction in instructions:
+    #     #bang out the instructon
+    #     JumpEnable.set_value(0)
+    #     Count.set_value(0)
+    #     Bus_Write(Main_Bus, instruction)
+    #     Data_Bank.append(JTAG_Data.copy())
+    #
 
-    instructions = read_binaries(sys.argv[1])
-    for instruction in instructions:
-        #bang out the instructon
-        JumpEnable.set_value(0)
-        Count.set_value(0)
-        Bus_Write(Main_Bus, instruction)
-        Data_Bank.append(JTAG_Data.copy())
+    # # write in the data
+    # Bus_Write(Main_Bus, "11001100")
+    # Count.set_value(0)
+    # JumpEnable.set_value(0)
+    # MemWriteControl.set_value(0)
+    # Data_Bank.append(JTAG_Data.copy())
+    #
+    #
+    # #disable writing and show something differnet
+    # MemWriteControl.set_value(1)
+    # Bus_Write(Main_Bus, "00110011")
+    # Data_Bank.append(JTAG_Data.copy())
 
-        # write in the data
-        MemWriteControl.set_value(0)
-        Data_Bank.append(JTAG_Data.copy())
-        #increment and return to a safe state
-        Count.set_value(1)
-        MemWriteControl.set_value(1)
-        Data_Bank.append(JTAG_Data.copy())
 
-    Bus_Write(Main_Bus, "11111111")
-    Data_Bank.append(JTAG_Data.copy())
-    LowJumpRegLoad.set_value(1)
-    HighJumpRegLoad.set_value(1)
-    Count.set_value(0)
-    JumpEnable.set_value(1) #prepare to Jump
-    Data_Bank.append(JTAG_Data.copy())
-    Count.set_value(1) #counter has been preset
-    Data_Bank.append(JTAG_Data.copy())
+    # #relenquish the bus
+    # for signal in Main_Bus:
+    #     signal.disable()
+    # #drive the ram
+    # MemOutEnable.set_value(0)
+    # Data_Bank.append(JTAG_Data.copy())
+
+
+
+
+    # Bus_Write(Main_Bus, "11111111")
+    # Data_Bank.append(JTAG_Data.copy())
+    # LowJumpRegLoad.set_value(1)
+    # HighJumpRegLoad.set_value(1)
+    # Count.set_value(0)
+    # JumpEnable.set_value(1) #prepare to Jump
+    # Data_Bank.append(JTAG_Data.copy())
+    # Count.set_value(1) #counter has been preset
+    # Data_Bank.append(JTAG_Data.copy())
 
     flat_Data = [item for sublist in Data_Bank for item in sublist]
     with open("blank.c" ,"r") as f:
@@ -147,7 +171,7 @@ def main():
     data[7][17] = "["
     data[7][18] = "]"
     data[7] = "".join(data[7])
-    
+
     with open("out.c", "w") as f:
         for line in data:
             f.write(line + "\n")
